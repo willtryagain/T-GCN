@@ -10,11 +10,13 @@ class PlotValidationPredictionsCallback(BestEpochCallback):
         self.predictions = []
 
     def on_fit_start(self, trainer, pl_module):
+        # print("PlotValidationPredictionsCallback on_fit_start")
         self.ground_truths.clear()
         self.predictions.clear()
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+        # print("PlotValidationPredictionsCallback on_validation_batch_end")
         if trainer.current_epoch != self.best_epoch:
             return
         self.ground_truths.clear()
@@ -26,12 +28,12 @@ class PlotValidationPredictionsCallback(BestEpochCallback):
         self.predictions.append(predictions[:, 0, :])
 
     def on_fit_end(self, trainer, pl_module):
+        # print("PlotValidationPredictionsCallback on_fit_end")
         ground_truth = np.concatenate(self.ground_truths, 0)
         predictions = np.concatenate(self.predictions, 0)
         tensorboard = pl_module.logger.experiment
         for node_idx in range(ground_truth.shape[1]):
             plt.clf()
-            plt.rcParams["font.family"] = "Times New Roman"
             fig = plt.figure(figsize=(7, 2), dpi=300)
             plt.plot(
                 ground_truth[:, node_idx],

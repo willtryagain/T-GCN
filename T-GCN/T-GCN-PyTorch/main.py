@@ -20,6 +20,8 @@ def get_model(args, dm):
     model = None
     if args.model_name == "GCN":
         model = models.GCN(adj=dm.adj, input_dim=args.seq_len, output_dim=args.hidden_dim)
+
+        # model = models.MyGCN(adj=dm.adj, input_dim=args.seq_len, output_dim=args.hidden_dim)
     if args.model_name == "GRU":
         model = models.GRU(input_dim=dm.adj.shape[0], hidden_dim=args.hidden_dim)
     if args.model_name == "TGCN":
@@ -51,15 +53,16 @@ def main_supervised(args):
     model = get_model(args, dm)
     task = get_task(args, model, dm)
     callbacks = get_callbacks(args)
-    trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks)
+    trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks) # set num
+
     trainer.fit(task, dm)
     results = trainer.validate(datamodule=dm)
     return results
 
 
 def main(args):
-    rank_zero_info(vars(args))
-    results = globals()["main_" + args.settings](args)
+    rank_zero_info(vars(args)) 
+    results = globals()["main_" + args.settings](args) 
     return results
 
 
@@ -84,6 +87,7 @@ if __name__ == "__main__":
         choices=("supervised",),
         default="supervised",
     )
+    parser.add_argument("--job_name", type=str, default="bash", help="The name of the job")
     parser.add_argument("--log_path", type=str, default=None, help="Path to the output console log file")
     parser.add_argument("--send_email", "--email", action="store_true", help="Send email when finished")
 
@@ -111,3 +115,7 @@ if __name__ == "__main__":
     if args.send_email:
         subject = "[Email Bot][✅] " + "-".join([args.settings, args.model_name, args.data])
         utils.email.send_experiment_results_email(args, results, subject=subject)
+
+
+# rsync command from here to the server
+# rsync -avz --exclude-from=.gitignore --exclude-from=.dockerignore --exclude-from=.rsyncignore . root@<server_ip>:/root/STGCN

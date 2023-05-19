@@ -28,6 +28,7 @@ class SpatioTemporalCSVDataModule(pl.LightningDataModule):
         self._feat = utils.data.functions.load_features(self._feat_path)
         self._feat_max_val = np.max(self._feat)
         self._adj = utils.data.functions.load_adjacency_matrix(self._adj_path)
+        
 
     @staticmethod
     def add_data_specific_arguments(parent_parser):
@@ -49,6 +50,7 @@ class SpatioTemporalCSVDataModule(pl.LightningDataModule):
             self.pre_len,
             split_ratio=self.split_ratio,
             normalize=self.normalize,
+            adj=self._adj,
         )
 
     def train_dataloader(self):

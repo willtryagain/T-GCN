@@ -2,6 +2,9 @@ import argparse
 import torch
 import torch.nn as nn
 from utils.graph_conv import calculate_laplacian_with_self_loop
+import torch.nn.functional as F
+
+from torch_geometric.nn import GCNConv
 
 
 class GCN(nn.Module):
@@ -55,3 +58,63 @@ class GCN(nn.Module):
             "input_dim": self._input_dim,
             "output_dim": self._output_dim,
         }
+
+
+class MyGCN(nn.Module):
+    def __init__(self,adj, input_dim: int, output_dim: int, **kwargs):
+        super().__init__()
+        self._batch_size = 64
+        self.edge_index = torch.from_numpy(adj).nonzero().t()
+        self._num_nodes = adj.shape[0]
+        self._input_dim = input_dim  # seq_len for prediction
+        self._output_dim = output_dim  # hidden_dim for prediction
+        self.conv1 = GCNConv(input_dim * self._batch_size, 64 * self._batch_size)
+        self.weights = nn.Parameter(
+            torch.FloatTensor(self._input_dim, self._output_dim)
+        )
+        self.register_buffer(
+            "laplacian", calculate_laplacian_with_self_loop(torch.FloatTensor(adj))
+        )
+        # adj to edge_index
+        self.reset_parameters()
+        
+    def forward(self, inputs):
+        x = inputs
+    
+        x = x.transpose(0, 2).transpose(1, 2)
+        x = x.reshape((self._num_nodes, -1))
+        print("input", x.shape)
+        print("edge_index", self.edge_index.shape)
+        print("self.conv1", self.conv1)
+        x = self.conv1(x, self.edge_index)
+        x = x.reshape((self._num_nodes, self._batch_size, self._output_dim))
+        x = x.transpose(0, 1)
+        print("output", x.shape)
+        return x
+        
+    
+    @staticmethod
+    def add_model_specific_arguments(parent_parser):
+        parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
+        parser.add_argument("--hidden_dim", type=int, default=64)
+        return parser
+
+    def reset_parameters(self):
+        self.conv1.reset_parameters()
+        self.conv2.reset_parameters()
+
+    @property
+    def hyperparameters(self):
+        return {
+            "num_nodes": self._num_nodes,
+            "input_dim": self._input_dim,
+            "output_dim": self._output_dim,
+        }
+    
+ 
+
+
+if __name__ == "__main__":
+    model = MyGCN(None, 10, 10)
+    inputs = torch.randn(64, 10, 10)
+    outputs = model(inputs)

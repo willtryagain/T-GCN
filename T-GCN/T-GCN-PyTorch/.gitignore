@@ -153,3 +153,5 @@ lightning_logs/
 
 # Scripts
 scripts/
+
+pems_bay/
